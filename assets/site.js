@@ -1,6 +1,18 @@
 "use strict";
 // Home and Looks pages: draws looks with the same engine the Studio uses.
 const LOOK_INFO = {
+  "First Coat": "One dry brush stroke up the arm, worn in.",
+  "Run Off": "Paint poured from the shoulder and left to drip.",
+  "Thrown": "Ink flicked at the sleeve, with a little red.",
+  "Bad Handwriting": "Your words in marker, down one seam.",
+  "Wired": "Two hand-drawn bands of barbed wire.",
+  "Sharpie": "Doodles down both sides, like a school bag.",
+  "Mended": "Hand stitching and patched-up tape.",
+  "Block Print": "Carved like a lino block, printed unevenly.",
+  "Gaffer": "Strips of torn tape down one side.",
+  "Back Alley": "A lime spray line with a few stray flicks.",
+  "Copy Shop": "Toner dust from a tired photocopier.",
+  "Roller": "One dry pass of a paint roller.",
   "Aftershock": "Thin cracks along the seams and one quake line.",
   "Selvedge": "Fine lines hugging both sides, with one lime thread.",
   "Silt": "Grain settling against both seams.",
@@ -21,9 +33,9 @@ const LOOK_INFO = {
 function drawLook(cv, look, px) {
   const s = px / 520, img = layImage(s, lookState(look)); cv.width = img.width; cv.height = img.height; cv.getContext("2d").drawImage(img, 0, 0);
 }
-const fontsReady = document.fonts ? Promise.all([document.fonts.load("100px Anton"), document.fonts.ready]).catch(() => {}) : Promise.resolve();
+const fontsReady = document.fonts ? Promise.all([...["Anton", ...HAND_FONTS].map(f => document.fonts.load(`100px "${f}"`)), document.fonts.ready]).catch(() => {}) : Promise.resolve();
 function lookCard(look) {
-  const a = document.createElement("a"); a.className = "look"; a.href = "studio.html?look=" + encodeURIComponent(look.name); a.dataset.tone = lum(look.base) > .5 ? "Light" : "Dark";
+  const a = document.createElement("a"); a.className = "look"; a.href = "studio.html?look=" + encodeURIComponent(look.name); a.dataset.set = look.set ? "Hand-made" : "Classic";
   a.innerHTML = `<canvas role="img" aria-label="${look.name} sleeve"></canvas><b>${look.name}</b><span>${LOOK_INFO[look.name] || ""}</span><span class="use">Open in Studio ${ic("arrow-right", 15)}</span>`;
   return a;
 }
@@ -32,11 +44,11 @@ function fillGrid(host, looks) {
   looks.forEach(l => { const a = lookCard(l); a.look = l; host.append(a); io.observe(a); });
 }
 fontsReady.then(() => {
-  const strip = document.getElementById("strip"); if (strip) fillGrid(strip, ["Selvedge", "Ember", "Coastline"].map(n => LOOKS.find(l => l.name === n)));
+  const strip = document.getElementById("strip"); if (strip) fillGrid(strip, ["First Coat", "Sharpie", "Run Off"].map(n => LOOKS.find(l => l.name === n)));
   const all = document.getElementById("allLooks");
-  if (all) { fillGrid(all, LOOKS); document.querySelectorAll("#tone button").forEach(b => { b.onclick = () => { document.querySelectorAll("#tone button").forEach(o => o.setAttribute("aria-pressed", o === b)); all.querySelectorAll(".look").forEach(c => { c.hidden = b.textContent !== "All" && c.dataset.tone !== b.textContent; }); }; }); }
+  if (all) { fillGrid(all, LOOKS); const show = b => { document.querySelectorAll("#tone button").forEach(o => o.setAttribute("aria-pressed", o === b)); all.querySelectorAll(".look").forEach(c => { c.hidden = c.dataset.set !== b.textContent; }); }; document.querySelectorAll("#tone button").forEach(b => { b.onclick = () => show(b); }); show(document.querySelector("#tone button")); }
   const hero = document.getElementById("heroArt");
-  if (hero) { const names = ["Aftershock", "Ember", "Selvedge", "Dusk", "Coastline", "Redline"], looks = names.map(n => LOOKS.find(l => l.name === n)), a = hero.querySelector("canvas:nth-of-type(1)"), b = hero.querySelector("canvas:nth-of-type(2)"), label = document.getElementById("heroName"), still = matchMedia("(prefers-reduced-motion: reduce)").matches; let i = 0, front = a, back = b;
+  if (hero) { const names = ["First Coat", "Run Off", "Thrown", "Block Print", "Back Alley", "Mended"], looks = names.map(n => LOOKS.find(l => l.name === n)), a = hero.querySelector("canvas:nth-of-type(1)"), b = hero.querySelector("canvas:nth-of-type(2)"), label = document.getElementById("heroName"), still = matchMedia("(prefers-reduced-motion: reduce)").matches; let i = 0, front = a, back = b;
     drawLook(front, looks[0], 1200); front.classList.add("on"); label.textContent = looks[0].name;
     if (!still) setInterval(() => { if (document.hidden) return; i = (i + 1) % looks.length; drawLook(back, looks[i], 1200); back.classList.add("on"); front.classList.remove("on"); [front, back] = [back, front]; label.textContent = looks[i].name; }, 4200); }
 });

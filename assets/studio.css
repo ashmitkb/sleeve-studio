@@ -107,3 +107,5 @@ button.icon { padding: 7px }
 .coachBtns a { color: var(--accent) }
 @media (max-width: 900px) { #drawer.closed { display: none } #rail button { flex-direction: row } }
 @media (prefers-reduced-motion: reduce) { *, ::backdrop { animation: none !important; transition: none !important } }
+
+#tabLooks > .seg, #tabAdd > .seg { justify-self: start }

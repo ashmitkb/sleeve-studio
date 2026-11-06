@@ -190,7 +190,7 @@ const LOOKS = [
   { name: "Dusk", base: COL.navy, logo: COL.bone, layers: [["gradient", { color: COL.red, seed: 1 }]] },
   { name: "Cuff", base: COL.bone, logo: COL.ink, layers: [["bands", { color: COL.ink, seed: 1 }]] },
 ];
-function lookState(l) { return { base: l.base, layers: l.layers.map(([t, o]) => makeLayer(t, o)), logo: { on: l.logo !== l.base, text: "AREABOYS", font: "Anton", dir: "along", size: 11, y: 440, across: 50, color: l.logo, track: 8 } }; }
+function lookState(l) { const h = l.set === "hand"; return { base: l.base, layers: l.layers.map(([t, o]) => makeLayer(t, o)), logo: { on: l.logo !== l.base, text: "AREABOYS", font: h ? "Permanent Marker" : "Anton", dir: "along", size: h ? 13 : 11, y: 440, across: 50, color: l.logo, track: h ? 0 : 8 } }; }
 
 // ---------------------------------------------------------------- drawing the artwork
 const primCache = new Map();
@@ -206,7 +206,7 @@ function drawLayer(c, l) {
     if (q.t === "line") { q.pts.forEach(([x, y], i) => i ? c.lineTo(x, y) : c.moveTo(x, y)); c.lineWidth = q.w; c.stroke(); }
     else if (q.t === "poly") { q.pts.forEach(([x, y], i) => i ? c.lineTo(x, y) : c.moveTo(x, y)); c.closePath(); c.fill(); }
     else if (q.t === "grad") { const g = c.createLinearGradient(q.a[0], q.a[1], q.b[0], q.b[1]), col = q.c || l.color; g.addColorStop(0, col); g.addColorStop(1, col + "00"); c.fillStyle = g; c.fillRect(...q.box); }
-    else if (q.t === "text") { c.save(); c.translate(q.x, q.y); c.rotate(q.rot); c.scale(q.size / 100, q.size / 100); c.font = "100px Anton"; c.textAlign = "left"; c.textBaseline = "middle"; c.fillText(q.s, 0, 0); c.restore(); }
+    else if (q.t === "text") { c.save(); c.translate(q.x, q.y); c.rotate(q.rot); c.scale(q.size / 100, q.size / 100); c.font = `100px "${q.font || "Anton"}"`; c.textAlign = "left"; c.textBaseline = "middle"; c.fillText(q.s, 0, 0); c.restore(); }
     else { for (const [x, y, r] of q.arr) { c.moveTo(x + r, y); c.arc(x, y, r, 0, 6.2832); } c.fill(); } }
   c.restore();
 }

@@ -13,7 +13,8 @@ Live site: https://ashmitkb.github.io/sleeve-studio/
 
 ## What it does
 
-- 16 ready-made looks and 22 stackable presets
+- Hand-made set: 12 looks and 14 presets drawn with a simulated hand, with brushes, paint and wear
+- Classic set: 16 looks and 22 clean graphic presets
 - Pen painting with pressure: ink, marker, dry brush, spray
 - Flat template, flat-lay pair and turnable on-arm views
 - Print check for thin lines, the elbow zone and seams
@@ -24,6 +25,7 @@ Designs save in your own browser. The template is 46 cm long, 17 cm at the top a
 ## Code
 
 - `assets/engine.js`: template geometry, presets, looks and artwork drawing, shared by every page
+- `assets/hand.js`: the simulated hand, brushes and Hand-made presets
 - `assets/studio.js`: the Studio interface, on-arm view, painting and exports
 - `assets/site.js`: Home and Looks pages
 - `assets/icons.js`: icons from [Lucide](https://lucide.dev) (ISC licence)

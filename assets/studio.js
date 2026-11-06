@@ -94,14 +94,21 @@ function drawZones(k, ox, oy, dpr) {
 
 // ---------------------------------------------------------------- panels
 function thumb(cv, st) { const cw = 260, ch = 112, s = .46, a = art(s, st, false), c = cv.getContext("2d"); cv.width = cw; cv.height = ch; c.translate(cw / 2, ch / 2); c.rotate(Math.PI / 2); c.drawImage(a, -a.width / 2, -a.height / 2 - 2); }
-let group = "Lines", tab = "looks";
+let lib = "hand", group = "Ink", tab = "looks";
+const SETS = { hand: ["Ink", "Paint", "Drawn", "Wear"], classic: ["Lines", "Texture", "Shapes", "Marks"] }, thumbJobs = [];
+function applyLook(l, shuffle) { const st = lookState(l), keep = state.logo; st.logo = { ...keep, color: l.logo, on: l.logo !== l.base && keep.on !== false, font: st.logo.font, size: st.logo.size, track: st.logo.track }; state = st; if (shuffle) state.layers.forEach(x => { x.seed = 1 + Math.floor(Math.random() * 9999); }); selected = state.layers[0].id; commit(); buildPanels(); schedule(); }
 function setTab(t) { tab = tab === t ? null : t; document.querySelectorAll("#rail button").forEach(b => b.setAttribute("aria-pressed", b.dataset.tab === tab)); $("drawer").classList.toggle("closed", !tab); for (const [id, k] of [["tabLooks", "looks"], ["tabAdd", "add"], ["tabLayers", "layers"], ["tabLogo", "logo"], ["tabExport", "export"]]) $(id).hidden = tab !== k; }
 const openTab = t => { if (tab !== t) setTab(t); };
-function showGroup() { document.querySelectorAll("#groups button").forEach(b => b.setAttribute("aria-pressed", b.textContent === group)); document.querySelectorAll("#presets .card").forEach(c => c.hidden = c.dataset.group !== group); }
+function showGroup() {
+  document.querySelectorAll("[data-lib]").forEach(b => b.setAttribute("aria-pressed", b.dataset.lib === lib));
+  document.querySelectorAll("#looks .card").forEach(c => { c.hidden = c.dataset.set !== lib; });
+  $("groups").textContent = ""; SETS[lib].forEach(g => { const b = document.createElement("button"); b.textContent = g; b.setAttribute("aria-pressed", g === group); b.onclick = () => { group = g; showGroup(); }; $("groups").append(b); });
+  document.querySelectorAll("#presets .card").forEach(c => { c.hidden = c.dataset.group !== group; });
+}
 function buildLibrary() {
-  LOOKS.forEach(l => { const b = document.createElement("button"); b.className = "card"; b.innerHTML = `<canvas></canvas><span>${l.name}</span>`; b.onclick = () => { const st = lookState(l); st.logo = { ...state.logo, color: l.logo, on: l.logo !== l.base && state.logo.on !== false }; state = st; selected = state.layers[0].id; commit(); buildPanels(); schedule(); if (typeof fadeStage === "function") fadeStage(); toast(`${l.name} loaded`); }; $("looks").append(b); thumb(b.firstChild, lookState(l)); });
-  ["Lines", "Texture", "Shapes", "Marks"].forEach(g => { const b = document.createElement("button"); b.textContent = g; b.onclick = () => { group = g; showGroup(); }; $("groups").append(b); });
-  Object.entries(PRESETS).filter(([, P]) => !P.paint).forEach(([t, P]) => { const b = document.createElement("button"); b.className = "card"; b.dataset.group = P.group; b.innerHTML = `<canvas></canvas><span>${P.name}</span>`; b.onclick = () => { const light = lum(state.base) > .5, l = makeLayer(t, { color: light ? COL.ink : COL.bone }); state.layers.push(l); selected = l.id; commit(); buildPanels(); schedule(); openTab("layers"); toast(`${P.name} added`); }; $("presets").append(b); thumb(b.firstChild, { base: COL.ink, layers: [makeLayer(t, { seed: 7 })], logo: { on: false } }); });
+  LOOKS.forEach(l => { const b = document.createElement("button"); b.className = "card"; b.dataset.set = l.set || "classic"; b.innerHTML = `<canvas></canvas><span>${l.name}</span>`; b.onclick = () => { applyLook(l); fadeStage(); toast(`${l.name} loaded`); }; $("looks").append(b); const job = () => thumb(b.firstChild, lookState(l)); thumbJobs.push(job); job(); });
+  Object.entries(PRESETS).filter(([, P]) => !P.paint).forEach(([t, P]) => { const b = document.createElement("button"); b.className = "card"; b.dataset.group = P.group; b.innerHTML = `<canvas></canvas><span>${P.name}</span>`; b.onclick = () => { const light = lum(state.base) > .5, l = makeLayer(t, { color: P.knock ? state.base : light ? COL.ink : COL.bone }); state.layers.push(l); selected = l.id; commit(); buildPanels(); schedule(); openTab("layers"); toast(`${P.name} added`); }; $("presets").append(b); const th = P.knock ? { base: COL.bone, layers: [makeLayer("block", { color: COL.ink, seed: 1, p: { left: -60, right: -60 } }), makeLayer(t, { seed: 7, color: COL.bone })], logo: { on: false } } : { base: COL.ink, layers: [makeLayer(t, { seed: 7 })], logo: { on: false } }, job = () => thumb(b.firstChild, th); thumbJobs.push(job); job(); });
+  document.querySelectorAll("[data-lib]").forEach(b => { b.onclick = () => { lib = b.dataset.lib; group = SETS[lib][0]; showGroup(); }; });
   showGroup();
 }
 function swatches(host, current, set, keys = Object.keys(COL)) {
@@ -134,7 +141,7 @@ function buildSettings() {
   if (P.text) { const d = document.createElement("div"); d.className = "row2"; d.innerHTML = '<label for="lText">Text</label><input type="text" id="lText" maxlength="30">'; const t = d.children[1]; t.value = l.text ?? "AREABOYS"; t.oninput = () => { l.text = t.value; schedule(); }; t.onchange = commit; host.append(d); }
   P.params.forEach(q => (q.options ? choice : slider)(host, "p_" + q.k, q.label, q, () => l.p[q.k], v => l.p[q.k] = v));
   if (P.paint) { const n = document.createElement("p"); n.className = "note"; n.textContent = `${l.strokes.length} stroke${l.strokes.length === 1 ? "" : "s"}. Press Paint to draw on this layer.`; const cl = document.createElement("button"); cl.id = "lClear"; cl.className = "quiet"; cl.textContent = "Clear all strokes"; cl.disabled = !l.strokes.length; cl.onclick = () => { l.strokes = []; l.rev = (l.rev || 0) + 1; commit(); buildPanels(); schedule(); toast("Strokes cleared"); }; host.append(n, cl); }
-  else { const sw = document.createElement("div"); sw.className = "swatches"; sw.id = "layerSw"; host.append(sw); swatches(sw, l.color, v => l.color = v); }
+  else if (!P.knock) { const sw = document.createElement("div"); sw.className = "swatches"; sw.id = "layerSw"; host.append(sw); swatches(sw, l.color, v => l.color = v); }
   const dt = document.createElement("details"); dt.open = l.from > 0 || l.to < 46 || l.avoid; dt.innerHTML = "<summary>Position on the arm</summary><div></div>"; const in2 = dt.lastChild;
   slider(in2, "lFrom", "Start", { min: 0, max: 46, step: 1, unit: "cm" }, () => l.from, v => { l.from = Math.min(v, l.to - 1); });
   slider(in2, "lTo", "End", { min: 0, max: 46, step: 1, unit: "cm" }, () => l.to, v => { l.to = Math.max(v, l.from + 1); });
@@ -151,12 +158,12 @@ function buildLogo() {
   slider(more, "gT", "Spacing", { min: 0, max: 40, step: 1 }, () => g.track, v => g.track = v);
   swatches($("logoSw"), g.color, v => g.color = v, ["ink", "bone", "white", "lime", "red"]); $("logoClear").hidden = !logoImg;
 }
-function buildPanels() { swatches($("baseSw"), state.base, v => state.base = v); swatches($("paintSw"), brush.color, v => brush.color = v, ["ink", "bone", "lime", "red"]); buildLayers(); buildSettings(); buildLogo(); syncHistory(); runChecks(); }
+function buildPanels() { swatches($("baseSw"), state.base, v => { state.base = v; state.layers.forEach(l => { if (PRESETS[l.type].knock) l.color = v; }); }); swatches($("paintSw"), brush.color, v => brush.color = v, ["ink", "bone", "lime", "red"]); buildLayers(); buildSettings(); buildLogo(); syncHistory(); runChecks(); }
 
 // ---------------------------------------------------------------- print check
 function runChecks() {
   const vis = state.layers.filter(l => !l.hidden), items = [], g = state.logo; let thin = 99, elbow = [];
-  for (const l of vis) { const m = Math.min(...primsOf(l).filter(q => q.t !== "dots").map(q => q.w), 99); thin = Math.min(thin, m); const crosses = bandsOf(l).some(([a, b]) => a < ELBOW[1] && b > ELBOW[0]); if (crosses && m < .75) elbow.push(PRESETS[l.type].name); }
+  for (const l of vis) { const m = Math.min(...primsOf(l).filter(q => q.t !== "dots").map(q => q.w), 99); thin = Math.min(thin, m); const crosses = bandsOf(l).some(([a, b]) => a < ELBOW[1] && b > ELBOW[0]); if (crosses && m < .75 && !PRESETS[l.type].set) elbow.push(PRESETS[l.type].name); }
   items.push(thin >= .6 ? [1, "Lines are 0.6 mm or thicker."] : [0, `Thinnest line is ${thin.toFixed(2)} mm. Go to 0.6 mm or more so it survives stretch.`]);
   items.push(!elbow.length ? [1, "No hairlines across the elbow."] : [0, `${[...new Set(elbow)].join(", ")} crosses the elbow with lines under 0.75 mm. Thicken them or keep them clear of the elbow.`]);
   if (g.on) { const inElbow = g.y > ELBOW[0] - 12 && g.y < ELBOW[1] + 12, [x, y] = logoPos(g), span = g.dir === "across" ? g.size * Math.max(1, g.text.length) * .25 : g.size / 2, near = Math.min(x - xl(y), xr(y) - x) - span < 10;
@@ -185,7 +192,7 @@ function logoRaster(g) { // the logo goes into the SVG as a 600 dpi image, so th
 function buildSvg() {
   const defs = [`<clipPath id="sleeve"><path d="${SLEEVE}"/></clipPath>`], body = [];
   state.layers.filter(l => !l.hidden).forEach((l, n) => { const inner = [];
-    if (l.type === "type") { const s = 12, cv = document.createElement("canvas"); cv.width = W * s; cv.height = H * s; const c = cv.getContext("2d"); c.scale(s, s); drawLayer(c, l); body.push(`<image href="${cv.toDataURL("image/png")}" x="0" y="0" width="${W}" height="${H}"/>`); return; }
+    if (PRESETS[l.type].text) { const s = 12, cv = document.createElement("canvas"); cv.width = W * s; cv.height = H * s; const c = cv.getContext("2d"); c.scale(s, s); drawLayer(c, l); body.push(`<image href="${cv.toDataURL("image/png")}" x="0" y="0" width="${W}" height="${H}"/>`); return; }
     primsOf(l).forEach((q, m) => { if (q.t !== "grad") return; const id = `grad${n}_${m}`; defs.push(`<linearGradient id="${id}" gradientUnits="userSpaceOnUse" x1="${num(q.a[0])}" y1="${num(q.a[1])}" x2="${num(q.b[0])}" y2="${num(q.b[1])}"><stop offset="0" stop-color="${l.color}"/><stop offset="1" stop-color="${l.color}" stop-opacity="0"/></linearGradient>`); inner.push(`<rect x="${q.box[0]}" y="${q.box[1]}" width="${q.box[2]}" height="${q.box[3]}" fill="url(#${id})" opacity="${q.o}"/>`); });
     for (const q of primsOf(l)) { if (q.t === "grad") continue; const op = q.o < 1 ? ` opacity="${q.o}"` : "", col = q.c || l.color;
       if (q.t === "line") inner.push(`<polyline points="${q.pts.map(([x, y]) => num(x) + "," + num(y)).join(" ")}" fill="none" stroke="${col}" stroke-width="${num(q.w)}" stroke-linecap="round" stroke-linejoin="round"${op}/>`);
@@ -247,12 +254,12 @@ $("printPill").onclick = () => openTab("export");
 new ResizeObserver(schedule).observe($("stageWrap"));
 buildLibrary();
 const wanted = new URLSearchParams(location.search).get("look"), wantedLook = LOOKS.find(l => l.name === wanted);
-if (wantedLook) { const keep = state.logo; state = lookState(wantedLook); state.logo = { ...keep, color: wantedLook.logo, on: wantedLook.logo !== wantedLook.base }; selected = state.layers[0].id; commit(); history.replaceState(null, "", "studio.html"); toast(`${wantedLook.name} loaded`); }
+if (wantedLook) { applyLook(wantedLook); if (!wantedLook.set) { lib = "classic"; group = SETS.classic[0]; showGroup(); } history.replaceState(null, "", "studio.html"); toast(`${wantedLook.name} loaded`); }
 buildPanels(); schedule();
-$("surprise").onclick = () => { const l = LOOKS[Math.floor(Math.random() * LOOKS.length)], st = lookState(l); st.logo = { ...state.logo, color: l.logo, on: l.logo !== l.base }; state = st; state.layers.forEach(x => { x.seed = 1 + Math.floor(Math.random() * 9999); }); selected = state.layers[0].id; commit(); buildPanels(); schedule(); fadeStage(); toast(`Here's ${l.name}`); };
+$("surprise").onclick = () => { const pool = LOOKS.filter(l => (l.set || "classic") === lib), l = pool[Math.floor(Math.random() * pool.length)]; applyLook(l, true); fadeStage(); toast(`Here's ${l.name}`); };
 const coach = $("coach"), seen = () => { try { return localStorage.getItem("sleeve-studio-welcomed"); } catch (e) { return "1"; } };
 $("helpBtn").onclick = () => coach.showModal();
 $("coachGo").onclick = () => { coach.close(); };
 coach.addEventListener("close", () => { try { localStorage.setItem("sleeve-studio-welcomed", "1"); } catch (e) {} });
 if (!seen() && !wantedLook) coach.showModal();
-if (document.fonts) { document.fonts.load("100px Anton").then(() => { primCache.clear(); schedule(); }).catch(() => {}); ["100px Anton", '100px "IBM Plex Mono"', "100px Archivo"].forEach(f => document.fonts.load(f).then(schedule).catch(() => {})); document.fonts.ready.then(schedule); }
+if (document.fonts) { Promise.all(["Anton", ...HAND_FONTS].map(f => document.fonts.load(`100px "${f}"`))).then(() => { primCache.clear(); thumbJobs.forEach(j => j()); schedule(); }).catch(() => {}); ["100px Anton", '100px "IBM Plex Mono"', "100px Archivo"].forEach(f => document.fonts.load(f).then(schedule).catch(() => {})); document.fonts.ready.then(schedule); }
