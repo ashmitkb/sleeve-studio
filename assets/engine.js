@@ -199,8 +199,12 @@ function bandsOf(l) { // visible stretches of the arm for this layer
   const a = l.from <= 0 ? -10 : 30 + l.from * 10, b = l.to >= 46 ? 530 : 30 + l.to * 10; if (!l.avoid) return [[a, b]];
   const out = []; if (a < ELBOW[0]) out.push([a, Math.min(b, ELBOW[0])]); if (b > ELBOW[1]) out.push([Math.max(a, ELBOW[1]), b]); return out;
 }
+// The back of the sleeve. Going past a side seam you land on the back's near edge, so one-sided layers
+// swap sides and get a fresh seed, and layers that run across the arm mirror so they line up at the fold.
+function backState(st) { return { base: st.base, logo: { on: false }, layers: st.layers.map(l => { const P = PRESETS[l.type], flip = !!P.noSide; return { ...l, id: l.id + 1e6, seed: flip && !P.knock ? l.seed : l.seed + 7919, side: l.side === "L" ? "R" : l.side === "R" ? "L" : l.side, flip }; }) }; }
 function drawLayer(c, l) {
   c.save(); c.beginPath(); for (const [a, b] of bandsOf(l)) c.rect(-20, a, 300, b - a); c.clip();
+  if (l.flip) { c.translate(W, 0); c.scale(-1, 1); }
   c.lineCap = c.lineJoin = "round";
   for (const q of primsOf(l)) { c.fillStyle = c.strokeStyle = q.c || l.color; c.globalAlpha = q.o; c.beginPath();
     if (q.t === "line") { q.pts.forEach(([x, y], i) => i ? c.lineTo(x, y) : c.moveTo(x, y)); c.lineWidth = q.w; c.stroke(); }
@@ -247,7 +251,7 @@ function layImage(s, st = state, withLogo = true, detail = true) {
 function lum(h) { const n = parseInt(h.slice(1), 16); return (.2126 * (n >> 16 & 255) + .7152 * (n >> 8 & 255) + .0722 * (n & 255)) / 255; }
 function drawPair(c, w, h, detail = true) {
   c.fillStyle = "#FFFFFF"; c.fillRect(0, 0, w, h);
-  const s = Math.min(w * .9 / 480, h / (170 * 2 + 70)), img = layImage(s), bw = 480 * s, bh = 172 * s, gap = Math.min(52 * s, (h - 2 * bh) / 3), x = (w - bw) / 2 - 26 * s, y0 = (h - 2 * bh - gap) / 2 - 44 * s;
-  [[x, y0], [x + 5 * s, y0 + bh + gap]].forEach(([px, py]) => { c.save(); c.shadowColor = "rgba(20,20,20,.3)"; c.shadowBlur = 11 * s; c.shadowOffsetY = 3 * s; c.shadowOffsetX = s; c.drawImage(img, px, py); c.restore(); });
+  const s = Math.min(w * .9 / 480, h / (170 * 2 + 70)), img = layImage(s), imgB = layImage(s, backState(state), false), bw = 480 * s, bh = 172 * s, gap = Math.min(52 * s, (h - 2 * bh) / 3), x = (w - bw) / 2 - 26 * s, y0 = (h - 2 * bh - gap) / 2 - 44 * s;
+  [[x, y0, img], [x + 5 * s, y0 + bh + gap, imgB]].forEach(([px, py, im]) => { c.save(); c.shadowColor = "rgba(20,20,20,.3)"; c.shadowBlur = 11 * s; c.shadowOffsetY = 3 * s; c.shadowOffsetX = s; c.drawImage(im, px, py); c.restore(); });
 }
 

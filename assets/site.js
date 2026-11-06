@@ -1,18 +1,26 @@
 "use strict";
 // Home and Looks pages: draws looks with the same engine the Studio uses.
 const LOOK_INFO = {
-  "First Coat": "One dry brush stroke up the arm, worn in.",
-  "Run Off": "Paint poured from the shoulder and left to drip.",
-  "Thrown": "Ink flicked at the sleeve, with a little red.",
-  "Bad Handwriting": "Your words in marker, down one seam.",
-  "Wired": "Two hand-drawn bands of barbed wire.",
-  "Sharpie": "Doodles down both sides, like a school bag.",
-  "Mended": "Hand stitching and patched-up tape.",
+  "First Coat": "Dry brush strokes up the arm, flicked and worn in.",
+  "Run Off": "Paint poured from the shoulder, dripped and cracked.",
+  "Thrown": "Ink and red thrown at the sleeve.",
+  "Bad Handwriting": "Your words in marker and pen over photocopy dust.",
+  "Wired": "Three bands of barbed wire with a little red.",
+  "Sharpie": "Covered in doodles, like a school bag.",
+  "Mended": "Patched with tape and hand stitching.",
   "Block Print": "Carved like a lino block, printed unevenly.",
-  "Gaffer": "Strips of torn tape down one side.",
-  "Back Alley": "A lime spray line with a few stray flicks.",
-  "Copy Shop": "Toner dust from a tired photocopier.",
-  "Roller": "One dry pass of a paint roller.",
+  "Gaffer": "Torn tape with notes scribbled on it.",
+  "Back Alley": "Spray line, tag and stencils on a dirty wall.",
+  "Copy Shop": "A tired photocopier, some hatching and a note.",
+  "Roller": "Dry paint roller passes, with one red stripe.",
+  "Thorn": "Vines with thorns climbing both sides.",
+  "Flash Sheet": "Hand-drawn tattoo flash down both sides.",
+  "Hot Rod": "Two-colour flames rising from the wrist.",
+  "Ransom": "Your name in cut-out letters.",
+  "Bleached": "Bleach blooms and cracked print.",
+  "Repainted": "Painted over by hand, with notes on top.",
+  "Stencilled": "Spray stencils with overspray.",
+  "Tagged": "Marker tags with paint running off.",
   "Aftershock": "Thin cracks along the seams and one quake line.",
   "Selvedge": "Fine lines hugging both sides, with one lime thread.",
   "Silt": "Grain settling against both seams.",
@@ -44,11 +52,11 @@ function fillGrid(host, looks) {
   looks.forEach(l => { const a = lookCard(l); a.look = l; host.append(a); io.observe(a); });
 }
 fontsReady.then(() => {
-  const strip = document.getElementById("strip"); if (strip) fillGrid(strip, ["First Coat", "Sharpie", "Run Off"].map(n => LOOKS.find(l => l.name === n)));
+  const strip = document.getElementById("strip"); if (strip) fillGrid(strip, ["Back Alley", "Flash Sheet", "Hot Rod"].map(n => LOOKS.find(l => l.name === n)));
   const all = document.getElementById("allLooks");
   if (all) { fillGrid(all, LOOKS); const show = b => { document.querySelectorAll("#tone button").forEach(o => o.setAttribute("aria-pressed", o === b)); all.querySelectorAll(".look").forEach(c => { c.hidden = c.dataset.set !== b.textContent; }); }; document.querySelectorAll("#tone button").forEach(b => { b.onclick = () => show(b); }); show(document.querySelector("#tone button")); }
   const hero = document.getElementById("heroArt");
-  if (hero) { const names = ["First Coat", "Run Off", "Thrown", "Block Print", "Back Alley", "Mended"], looks = names.map(n => LOOKS.find(l => l.name === n)), a = hero.querySelector("canvas:nth-of-type(1)"), b = hero.querySelector("canvas:nth-of-type(2)"), label = document.getElementById("heroName"), still = matchMedia("(prefers-reduced-motion: reduce)").matches; let i = 0, front = a, back = b;
+  if (hero) { const names = ["First Coat", "Hot Rod", "Flash Sheet", "Block Print", "Back Alley", "Bleached"], looks = names.map(n => LOOKS.find(l => l.name === n)), a = hero.querySelector("canvas:nth-of-type(1)"), b = hero.querySelector("canvas:nth-of-type(2)"), label = document.getElementById("heroName"), still = matchMedia("(prefers-reduced-motion: reduce)").matches; let i = 0, front = a, back = b;
     drawLook(front, looks[0], 1200); front.classList.add("on"); label.textContent = looks[0].name;
     if (!still) setInterval(() => { if (document.hidden) return; i = (i + 1) % looks.length; drawLook(back, looks[i], 1200); back.classList.add("on"); front.classList.remove("on"); [front, back] = [back, front]; label.textContent = looks[i].name; }, 4200); }
 });

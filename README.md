@@ -13,7 +13,7 @@ Live site: https://ashmitkb.github.io/sleeve-studio/
 
 ## What it does
 
-- Hand-made set: 12 looks and 14 presets drawn with a simulated hand, with brushes, paint and wear
+- Hand-made set: 20 looks and 26 presets drawn with a simulated hand, with brushes, paint and wear
 - Classic set: 16 looks and 22 clean graphic presets
 - Pen painting with pressure: ink, marker, dry brush, spray
 - Flat template, flat-lay pair and turnable on-arm views

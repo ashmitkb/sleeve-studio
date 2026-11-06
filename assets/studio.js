@@ -24,7 +24,7 @@ let faceKey = "", faces = null;
 function faceData(A) { // cached, so turning the arm doesn't redraw the artwork
   const key = JSON.stringify(state) + A + !!logoImg + (logoImg ? logoImg.src.length : 0); if (key === faceKey) return faces;
   const read = cv => cv.getContext("2d", { willReadFrequently: true }).getImageData(0, 0, cv.width, cv.height);
-  const f = read(art(A)), b = read(art(A, state, false)); faceKey = key; faces = { w: f.width, h: f.height, front: f.data, back: b.data }; return faces;
+  const f = read(art(A)), b = read(art(A, backState(state), false)); faceKey = key; faces = { w: f.width, h: f.height, front: f.data, back: b.data }; return faces;
 }
 function armImage(S, phi, repeat, A) {
   const F = faceData(A), PI = Math.PI, base = parseInt(state.base.slice(1), 16);
@@ -37,7 +37,7 @@ function armImage(S, phi, repeat, A) {
   // rim of the top opening, per screen column
   const wT = flatW(20), RT = look(tabW, 20) * S, cT = cx0 + armBend(20) * S, yf = new Float32Array(w), yb = new Float32Array(w), hT = hOf(RT);
   for (let X = 0; X < w; X++) { const t = (X + .5 - cT) / RT; if (Math.abs(t) > 1) { yf[X] = -1; continue; } const th = Math.asin(t), k = Math.cos(th);
-    yf[X] = y0 + topY(clampX(onFace(wrap(th + phi), wT))) * S + hT * k; yb[X] = y0 + topY(clampX(onFace(wrap(PI - th + phi), wT))) * S - hT * k; }
+    yf[X] = y0 + 20 * S + hT * k; yb[X] = y0 + 20 * S - hT * k; }
   const sample = (src, x, y, o) => { const fx = x * A - .5, fy = y * A - .5, ix = fx | 0, iy = fy | 0, ax = fx - ix, ay = fy - iy, W4 = F.w * 4, p = iy * W4 + ix * 4;
     for (let k = 0; k < 3; k++) o[k] = (src[p + k] * (1 - ax) + src[p + 4 + k] * ax) * (1 - ay) + (src[p + W4 + k] * (1 - ax) + src[p + W4 + 4 + k] * ax) * ay; };
   const px = [0, 0, 0], lightA = -.45;
@@ -47,9 +47,9 @@ function armImage(S, phi, repeat, A) {
       let y = yEst, R = 0, cx = 0, t = 0, th = 0;
       for (let n = 0; n < 3; n++) { R = look(tabW, y) * S; cx = cx0 + look(tabB, y) * S; t = (Xc - cx) / R; t = t < -1 ? -1 : t > 1 ? 1 : t; th = Math.asin(t); y = (Yc - y0 - hOf(R) * Math.cos(th)) / S; }
       const edge = clamp01(R - Math.abs(Xc - cx) + .5); if (!edge) continue;
-      const a = wrap(th + phi), isBack = Math.abs(a) > PI / 2, wd = flatW(y), xf = clampX(onFace(a, wd)), yT = topY(xf), yB = botY(xf), al = clamp01((y - yT) * S + .5) * clamp01((yB - y) * S + .5) * edge; if (!al) continue;
-      const ys = Math.min(yB - .5, Math.max(yT + .5, y));
-      if (isBack && !repeat) { px[0] = bc[0]; px[1] = bc[1]; px[2] = bc[2]; } else sample(isBack ? F.back : F.front, xf, ys, px);
+      const a = wrap(th + phi), isBack = Math.abs(a) > PI / 2, wd = flatW(y), xf = clampX(onFace(a, wd)), yT = 20, yB = 491, al = clamp01((y - yT) * S + .5) * clamp01((yB - y) * S + .5) * edge; if (!al) continue;
+      const ys = Math.min(botY(xf) - .5, Math.max(topY(xf) + .5, y));
+      if (isBack && !repeat) { px[0] = bc[0]; px[1] = bc[1]; px[2] = bc[2]; } else sample(isBack ? F.back : F.front, isBack ? 260 - xf : xf, ys, px);
       const dT = y - yT, dB = yB - y, co = Math.cos(th), lam = Math.max(0, Math.cos(th - lightA));
       let sh = (.58 + .42 * lam) * (.88 + .12 * co);
       sh *= 1 - .09 * Math.exp(-(((y - 250) / 22) ** 2)) * (.5 + .5 * Math.sin(y * .7 + th * 4));
@@ -65,7 +65,7 @@ function placeArm(c, img, cx, top, deg, S, q = 1) { c.save(); c.translate(cx, to
 function drawArm(c, w, h, barH) { studioGround(c, w, h); const S = Math.min((h - barH) / 545, w / 210), A = Math.min(6, Math.max(2, Math.ceil(S * 1.5))), q = armFast ? .4 : 1, img = armImage(S * q, armTurn * Math.PI / 180, armRepeat, A); placeArm(c, img, w / 2, Math.max(0, (h - barH - img.height / q) / 2), -2, S, q); }
 
 // ---------------------------------------------------------------- stage
-let armTurn = 0, armRepeat = false, armFast = false, armTimer = 0, flatT = { k: 1, ox: 0, oy: 0 };
+let showBack = false, armTurn = 0, armRepeat = true, armFast = false, armTimer = 0, flatT = { k: 1, ox: 0, oy: 0 };
 const stage = $("stage"), sc = stage.getContext("2d");
 let pending = false;
 function schedule() { if (pending) return; pending = true; requestAnimationFrame(() => { pending = false; render(); }); }
@@ -80,7 +80,7 @@ function render() {
   sc.fillStyle = css("--stage"); sc.fillRect(0, 0, w, h);
   const step = 50 * k; sc.strokeStyle = css("--stage-line"); sc.lineWidth = Math.max(1, dpr * .5); sc.beginPath();
   for (let x = ox % step; x < w; x += step) { sc.moveTo(x, 0); sc.lineTo(x, h); } for (let y = oy % step; y < h; y += step) { sc.moveTo(0, y); sc.lineTo(w, y); } sc.stroke();
-  sc.save(); sc.shadowColor = "rgba(0,0,0,.22)"; sc.shadowBlur = 18 * dpr; sc.shadowOffsetY = 5 * dpr; sc.drawImage(art(k), ox, oy); sc.restore();
+  sc.save(); sc.shadowColor = "rgba(0,0,0,.22)"; sc.shadowBlur = 18 * dpr; sc.shadowOffsetY = 5 * dpr; sc.drawImage(showBack ? art(k, backState(state), false) : art(k), ox, oy); sc.restore();
   if ($("zones").checked) drawZones(k, ox, oy, dpr);
 }
 function drawZones(k, ox, oy, dpr) {
@@ -189,29 +189,37 @@ function logoRaster(g) { // the logo goes into the SVG as a 600 dpi image, so th
   const cv = document.createElement("canvas"); cv.width = Math.ceil(wmm * s); cv.height = Math.ceil(hmm * s); const c = cv.getContext("2d"); c.translate(cv.width / 2, cv.height / 2); c.scale(s, s);
   paintLogo(c, g); return { url: cv.toDataURL("image/png"), w: wmm, h: hmm };
 }
-function buildSvg() {
-  const defs = [`<clipPath id="sleeve"><path d="${SLEEVE}"/></clipPath>`], body = [];
-  state.layers.filter(l => !l.hidden).forEach((l, n) => { const inner = [];
+function faceSvg(st, tag) {
+  const defs = [], body = [];
+  st.layers.filter(l => !l.hidden).forEach((l, n) => { const inner = [];
     if (PRESETS[l.type].text) { const s = 12, cv = document.createElement("canvas"); cv.width = W * s; cv.height = H * s; const c = cv.getContext("2d"); c.scale(s, s); drawLayer(c, l); body.push(`<image href="${cv.toDataURL("image/png")}" x="0" y="0" width="${W}" height="${H}"/>`); return; }
-    primsOf(l).forEach((q, m) => { if (q.t !== "grad") return; const id = `grad${n}_${m}`; defs.push(`<linearGradient id="${id}" gradientUnits="userSpaceOnUse" x1="${num(q.a[0])}" y1="${num(q.a[1])}" x2="${num(q.b[0])}" y2="${num(q.b[1])}"><stop offset="0" stop-color="${l.color}"/><stop offset="1" stop-color="${l.color}" stop-opacity="0"/></linearGradient>`); inner.push(`<rect x="${q.box[0]}" y="${q.box[1]}" width="${q.box[2]}" height="${q.box[3]}" fill="url(#${id})" opacity="${q.o}"/>`); });
+    primsOf(l).forEach((q, m) => { if (q.t !== "grad") return; const id = `grad${tag}${n}_${m}`; defs.push(`<linearGradient id="${id}" gradientUnits="userSpaceOnUse" x1="${num(q.a[0])}" y1="${num(q.a[1])}" x2="${num(q.b[0])}" y2="${num(q.b[1])}"><stop offset="0" stop-color="${l.color}"/><stop offset="1" stop-color="${l.color}" stop-opacity="0"/></linearGradient>`); inner.push(`<rect x="${q.box[0]}" y="${q.box[1]}" width="${q.box[2]}" height="${q.box[3]}" fill="url(#${id})" opacity="${q.o}"/>`); });
     for (const q of primsOf(l)) { if (q.t === "grad") continue; const op = q.o < 1 ? ` opacity="${q.o}"` : "", col = q.c || l.color;
       if (q.t === "line") inner.push(`<polyline points="${q.pts.map(([x, y]) => num(x) + "," + num(y)).join(" ")}" fill="none" stroke="${col}" stroke-width="${num(q.w)}" stroke-linecap="round" stroke-linejoin="round"${op}/>`);
       else if (q.t === "poly") inner.push(`<path d="M${q.pts.map(([x, y]) => num(x) + " " + num(y)).join("L")}Z" fill="${col}"${op}/>`);
       else inner.push(`<path d="${q.arr.map(([x, y, r]) => `M${num(x - r)} ${num(y)}a${num(r)} ${num(r)} 0 1 0 ${num(2 * r)} 0a${num(r)} ${num(r)} 0 1 0 ${num(-2 * r)} 0`).join("")}" fill="${col}"${op}/>`); }
-    defs.push(`<clipPath id="band${n}">${bandsOf(l).map(([a, b]) => `<rect x="-20" y="${a}" width="300" height="${b - a}"/>`).join("")}</clipPath>`);
-    body.push(`<g id="${PRESETS[l.type].name.replace(/\W+/g, "-")}-${n}" clip-path="url(#band${n})">${inner.join("")}</g>`); });
-  if (state.logo.on) { const g = state.logo, [x, y] = logoPos(g), r = logoRaster(g); body.push(`<image href="${r.url}" x="${num(x - r.w / 2)}" y="${num(y - r.h / 2)}" width="${num(r.w)}" height="${num(r.h)}"${g.dir === "along" ? ` transform="rotate(-90 ${num(x)} ${num(y)})"` : ""}/>`); }
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="260mm" height="520mm" viewBox="0 0 260 520">\n<!-- 1 unit = 1 mm. Sleeve 46 cm long, 17 cm top, 11 cm wrist. -->\n<defs>${defs.join("")}</defs>\n<path d="${SLEEVE}" fill="${state.base}"/>\n<g clip-path="url(#sleeve)">\n${body.join("\n")}\n</g>\n</svg>\n`;
+    defs.push(`<clipPath id="band${tag}${n}">${bandsOf(l).map(([a, b]) => `<rect x="-20" y="${a}" width="300" height="${b - a}"/>`).join("")}</clipPath>`);
+    body.push(`<g id="${PRESETS[l.type].name.replace(/\W+/g, "-")}-${tag}${n}" clip-path="url(#band${tag}${n})"${l.flip ? ' transform="translate(260 0) scale(-1 1)"' : ""}>${inner.join("")}</g>`); });
+  if (st.logo.on) { const g = st.logo, [x, y] = logoPos(g), r = logoRaster(g); body.push(`<image href="${r.url}" x="${num(x - r.w / 2)}" y="${num(y - r.h / 2)}" width="${num(r.w)}" height="${num(r.h)}"${g.dir === "along" ? ` transform="rotate(-90 ${num(x)} ${num(y)})"` : ""}/>`); }
+  return { defs: defs.join(""), body: body.join("\n") };
 }
+function buildSvg() { // front and back side by side, so the printer gets the whole sleeve
+  const f = faceSvg(state, "f"), b = faceSvg(backState(state), "b"), face = (x, name) => `<g id="${name}" transform="translate(${x} 0)">\n<path d="${SLEEVE}" fill="${state.base}"/>\n<g clip-path="url(#sleeve)">\n${x ? b.body : f.body}\n</g>\n</g>`;
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="520mm" height="520mm" viewBox="0 0 520 520">\n<!-- 1 unit = 1 mm. Front on the left, back on the right. Each face 46 cm long, 17 cm top, 11 cm wrist. -->\n<defs><clipPath id="sleeve"><path d="${SLEEVE}"/></clipPath>${f.defs}${b.defs}</defs>\n${face(0, "Front")}\n${face(260, "Back")}\n</svg>\n`;
+}
+function bothFaces(k) { const cv = document.createElement("canvas"), a = art(k), b = art(k, backState(state), false); cv.width = a.width * 2; cv.height = a.height; const c = cv.getContext("2d"); c.drawImage(a, 0, 0); c.drawImage(b, a.width, 0); return cv; }
 
 // ---------------------------------------------------------------- wiring
+function syncFace() { const on = view === "flat" && !paintOn; $("zonesLabel").hidden = !on; $("faceSeg").hidden = !on; if (!on) setFace(false, true); }
+function setFace(back, quiet) { showBack = back; $("fFront").setAttribute("aria-pressed", !back); $("fBack").setAttribute("aria-pressed", back); if (!quiet) { fadeStage(); schedule(); } }
 const calm = matchMedia("(prefers-reduced-motion: reduce)").matches;
 const fadeStage = () => { if (!calm) stage.animate([{ opacity: .15 }, { opacity: 1 }], { duration: 260, easing: "ease-out" }); };
-function setView(v) { if (v !== view) fadeStage(); view = v; if (v !== "flat" && paintOn) setPaint(false); $("vFlat").setAttribute("aria-pressed", v === "flat"); $("vLay").setAttribute("aria-pressed", v === "lay"); $("vArm").setAttribute("aria-pressed", v === "arm"); $("zonesLabel").hidden = v !== "flat"; $("armBar").hidden = v !== "arm"; stage.classList.toggle("grab", v === "arm"); schedule(); }
+function setView(v) { if (v !== view) fadeStage(); view = v; if (v !== "flat" && paintOn) setPaint(false); $("vFlat").setAttribute("aria-pressed", v === "flat"); $("vLay").setAttribute("aria-pressed", v === "lay"); $("vArm").setAttribute("aria-pressed", v === "arm"); syncFace(); $("armBar").hidden = v !== "arm"; stage.classList.toggle("grab", v === "arm"); schedule(); }
 $("vFlat").onclick = () => setView("flat"); $("vLay").onclick = () => setView("lay"); $("vArm").onclick = () => setView("arm");
 function setTurn(deg) { deg = ((Math.round(deg) + 180) % 360 + 360) % 360 - 180; armTurn = deg; $("armTurn").value = deg; $("armTurnOut").textContent = deg + "°"; armFast = true; clearTimeout(armTimer); armTimer = setTimeout(() => { armFast = false; schedule(); }, 180); schedule(); }
 $("armTurn").oninput = e => setTurn(+e.target.value);
 $("aFront").onclick = () => setTurn(0); $("aLeft").onclick = () => setTurn(-90); $("aRight").onclick = () => setTurn(90);
+$("fFront").onclick = () => setFace(false); $("fBack").onclick = () => setFace(true);
 $("armBack").onchange = e => { armRepeat = e.target.value === "repeat"; schedule(); };
 let dragX = null;
 stage.addEventListener("pointerdown", e => { if (view !== "arm") return; dragX = e.clientX; stage.setPointerCapture(e.pointerId); });
@@ -228,7 +236,7 @@ const logoField = (id, key, ev = "onchange") => { $(id)[ev] = () => { state.logo
 logoField("logoOn", "on"); logoField("logoFont", "font"); logoField("logoDir", "dir"); logoField("logoText", "text", "oninput"); $("logoText").onchange = commit;
 $("logoFile").onchange = e => { const f = e.target.files[0]; if (!f) return; const fr = new FileReader(); fr.onload = () => { const im = new Image(); im.onload = () => { logoImg = im; $("logoClear").hidden = false; schedule(); toast(`Using ${f.name}.`); }; im.onerror = () => toast("That file couldn't be read as an image."); im.src = fr.result; }; fr.readAsDataURL(f); };
 $("logoClear").onclick = () => { logoImg = null; $("logoFile").value = ""; $("logoClear").hidden = true; schedule(); };
-function setPaint(on) { paintOn = on; $("paintBtn").setAttribute("aria-pressed", on); $("paintBtn").innerHTML = ic(on ? "check" : "paintbrush") + (on ? "Done" : "Paint"); $("paintBar").hidden = !on; stage.classList.toggle("paint", on); if (on) { if (view !== "flat") setView("flat"); paintLayer(); if (tab) setTab(tab); toast("Draw on the sleeve"); } schedule(); }
+function setPaint(on) { paintOn = on; $("paintBtn").setAttribute("aria-pressed", on); $("paintBtn").innerHTML = ic(on ? "check" : "paintbrush") + (on ? "Done" : "Paint"); $("paintBar").hidden = !on; stage.classList.toggle("paint", on); syncFace(); if (on) { if (view !== "flat") setView("flat"); paintLayer(); if (tab) setTab(tab); toast("Draw on the sleeve"); } schedule(); }
 function paintLayer() { let l = state.layers.find(x => x.id === selected && x.type === "paint") || [...state.layers].reverse().find(x => x.type === "paint"); if (!l) { l = makeLayer("paint", { strokes: [], color: brush.color }); state.layers.push(l); commit(); } if (selected !== l.id) { selected = l.id; buildPanels(); } if (l.hidden) { l.hidden = false; buildPanels(); } return l; }
 $("paintBtn").onclick = () => setPaint(!paintOn);
 const BR = { bInk: "ink", bMarker: "marker", bDry: "dry", bSpray: "spray" };
@@ -246,7 +254,7 @@ stage.addEventListener("pointermove", e => { if (erasing) { eraseAt(e, paintL); 
 const endStroke = () => { if (!stroke && !erasing) return; if (stroke) strokeCache.delete(stroke); stroke = null; erasing = false; commit(); buildPanels(); schedule(); };
 stage.addEventListener("pointerup", endStroke); stage.addEventListener("pointercancel", endStroke);
 $("xSvg").onclick = () => save("sleeve-print.svg", buildSvg());
-$("xPng").onclick = async () => { toast("Rendering at 300 dpi…"); await new Promise(r => setTimeout(r, 30)); save("sleeve-print-300dpi.png", await blobOf(art(11.811))); };
+$("xPng").onclick = async () => { toast("Rendering at 300 dpi…"); await new Promise(r => setTimeout(r, 30)); save("sleeve-print-300dpi.png", await blobOf(bothFaces(11.811))); };
 $("xSmall").onclick = async () => save("sleeve-flat-4x.png", await blobOf(art(4)));
 $("xLay").onclick = async () => { toast("Rendering flat-lay…"); await new Promise(r => setTimeout(r, 30)); const cv = document.createElement("canvas"); cv.width = 2400; cv.height = 1800; drawPair(cv.getContext("2d"), 2400, 1800); save("sleeve-flatlay.png", await blobOf(cv)); };
 document.querySelectorAll("#rail button").forEach(b => { b.onclick = () => setTab(b.dataset.tab); });
