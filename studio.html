@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Studio · Sleeve Studio</title>
+<meta name="description" content="Design a printed arm sleeve in your browser.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath d='M8 3h16l-3 26H11z' fill='%231C6B58'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="assets/site.css">
+<link rel="stylesheet" href="assets/studio.css">
+</head>
+<body>
+<div id="app">
+  <header>
+    <a class="brand" href="index.html" title="Back to home"><h1>Sleeve Studio</h1></a>
+    <div class="seg" role="group" aria-label="View">
+      <button id="vFlat" aria-pressed="true" title="The flat print template" data-i="rectangle-vertical" data-s="15">Flat</button>
+      <button id="vLay" aria-pressed="false" title="A pair laid flat, like a product photo" data-i="rows-2" data-s="15">Flat-lay</button>
+      <button id="vArm" aria-pressed="false" title="See it worn, and drag to turn it" data-i="rotate-3d" data-s="15">On arm</button>
+    </div>
+    <span class="spacer"></span>
+    <button id="undo" class="icon" disabled aria-label="Undo" title="Undo" data-i="undo-2"></button>
+    <button id="redo" class="icon" disabled aria-label="Redo" title="Redo" data-i="redo-2"></button>
+    <button id="shuffleAll" class="icon" aria-label="New variation" title="New variation of this design" data-i="shuffle"></button>
+    <button id="helpBtn" class="icon" aria-label="How it works" title="How it works" data-i="circle-help"></button>
+    <button id="paintBtn" class="primary" aria-pressed="false" title="Draw on the sleeve with a pen, finger or mouse" data-i="paintbrush">Paint</button>
+  </header>
+  <main>
+    <nav id="rail" aria-label="Panels">
+      <button data-tab="looks" aria-pressed="true" data-i="sparkles" data-s="20">Looks</button>
+      <button data-tab="add" aria-pressed="false" data-i="plus" data-s="20">Add</button>
+      <button data-tab="layers" aria-pressed="false" data-i="layers" data-s="20">Layers</button>
+      <button data-tab="logo" aria-pressed="false" data-i="tag" data-s="20">Logo</button>
+      <button data-tab="export" aria-pressed="false" data-i="download" data-s="20">Export</button>
+    </nav>
+    <div id="drawer">
+      <div class="tab" id="tabLooks"><div class="group"><h2>Pick a look</h2><p class="note">Start here. Click one, then make it yours in Layers.</p></div><button id="surprise" class="quiet" data-i="wand-sparkles" data-s="16">Surprise me</button><div class="cards" id="looks"></div></div>
+      <div class="tab" id="tabAdd" hidden><div class="group"><h2>Add a layer</h2><p class="note">Layers stack on top of your design.</p></div><div class="chips" id="groups"></div><div class="cards" id="presets"></div></div>
+      <div class="tab" id="tabLayers" hidden>
+        <div class="group"><h2>Layers</h2><p class="note">Pick a layer, then move the sliders.</p></div>
+        <div id="layers" style="display:grid;gap:2px"></div>
+        <div class="group" id="settings"></div>
+        <div class="group"><h3>Sleeve colour</h3><div class="swatches" id="baseSw"></div></div>
+      </div>
+      <div class="tab" id="tabLogo" hidden>
+        <h2>Logo</h2>
+        <label class="check"><input type="checkbox" id="logoOn"> Show logo</label>
+        <div class="row2"><label for="logoText">Text</label><input type="text" id="logoText" maxlength="24"></div>
+        <div id="logoSliders" style="display:grid;gap:10px"></div>
+        <div class="swatches" id="logoSw"></div>
+        <details><summary>More options</summary><div>
+          <div id="logoMore" style="display:grid;gap:10px"></div>
+          <div class="row2"><label for="logoFont">Font</label><select id="logoFont"><option value="Anton">Anton</option><option value="Archivo">Archivo</option><option value="IBM Plex Mono">IBM Plex Mono</option></select></div>
+          <div class="row2"><label for="logoDir">Direction</label><select id="logoDir"><option value="along">Along the arm</option><option value="across">Across the arm</option></select></div>
+          <div class="row2"><label for="logoFile">Your logo</label><input type="file" id="logoFile" accept="image/png,image/svg+xml,image/jpeg,image/webp"></div>
+          <button id="logoClear" class="quiet" hidden>Use text instead</button>
+        </div></details>
+      </div>
+      <div class="tab" id="tabExport" hidden>
+        <h2>Export</h2>
+        <div class="exports">
+          <button class="primary" id="xSvg" data-i="printer" data-s="16">Print file (SVG)</button>
+          <button class="primary" id="xPng" data-i="printer" data-s="16">Print image (PNG, 300 dpi)</button>
+          <button class="quiet" id="xLay" data-i="rows-2" data-s="16">Flat-lay photo</button>
+          <button class="quiet" id="xArm" data-i="rotate-3d" data-s="16">On-arm photo</button>
+          <button class="quiet" id="xSmall" data-i="download" data-s="16">Small preview</button>
+        </div>
+        <p class="note">Print files are 1:1 on the 46 cm template. Swap in your printer's template before the final run.</p>
+        <div class="group"><h3>Print check</h3><ul id="checks"></ul></div>
+      </div>
+    </div>
+    <div id="stageWrap">
+      <canvas id="stage" aria-label="Sleeve preview"></canvas>
+      <span id="toast" role="status"></span>
+      <button id="printPill"></button>
+      <div id="stageBar">
+        <label id="zonesLabel"><input type="checkbox" id="zones"> Show stretch zones</label>
+        <div id="paintBar" hidden>
+          <div class="seg" role="group" aria-label="Brush"><button id="bInk" aria-pressed="true" title="Ink: pen pressure changes the line" data-i="pen-tool" data-s="15">Ink</button><button id="bMarker" aria-pressed="false" title="Marker: an even line" data-i="highlighter" data-s="15">Marker</button><button id="bDry" aria-pressed="false" title="Dry brush: rough bristles" data-i="brush" data-s="15">Dry</button><button id="bSpray" aria-pressed="false" title="Spray: scattered dots" data-i="spray-can" data-s="15">Spray</button><button id="bErase" aria-pressed="false" title="Erase whole strokes" data-i="eraser" data-s="15">Erase</button></div>
+          <label for="bSize">Size <input type="range" id="bSize" min="0.6" max="30" step="0.1" value="3"><output id="bSizeOut">3.0 mm</output></label>
+          <div class="swatches" id="paintSw"></div>
+          <label for="bMirror"><input type="checkbox" id="bMirror"> Mirror sides</label>
+        </div>
+        <div id="armBar" hidden>
+          <div class="seg" role="group" aria-label="Arm angle"><button id="aLeft">Left</button><button id="aFront">Front</button><button id="aRight">Right</button></div>
+          <label for="armTurn"><input type="range" id="armTurn" min="-180" max="180" step="1" value="0"><output id="armTurnOut">0°</output></label>
+          <label for="armBack">Back <select id="armBack"><option value="plain">Plain</option><option value="repeat">Same design</option></select></label>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<dialog id="coach" aria-labelledby="coachTitle">
+  <h2 id="coachTitle">Three steps to your sleeve</h2>
+  <ol>
+    <li><span data-i="sparkles" data-s="20"></span><div><b>Pick a look</b><p>Choose a starting design, or press Surprise me.</p></div></li>
+    <li><span data-i="sliders-horizontal" data-s="20"></span><div><b>Make it yours</b><p>Move sliders in Layers, add more from Add, or press Paint to draw.</p></div></li>
+    <li><span data-i="download" data-s="20"></span><div><b>Download it</b><p>Check it On arm, then get the print file from Export.</p></div></li>
+  </ol>
+  <div class="coachBtns"><a href="guide.html">Read the guide</a><button class="primary" id="coachGo">Start designing</button></div>
+</dialog>
+
+<script src="assets/icons.js"></script>
+<script src="assets/engine.js"></script>
+<script src="assets/studio.js"></script>
+</body>
+</html>
