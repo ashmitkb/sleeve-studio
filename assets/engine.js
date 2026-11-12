@@ -38,7 +38,7 @@ function strokeNumber(n, x, y, h, w) { // reads along the arm, wrist to shoulder
 // ---------------------------------------------------------------- presets
 const S = (k, label, min, max, step, def, unit = "") => ({ k, label, min, max, step, def, unit });
 const PRESETS = {
-  fracture: { name: "Fracture", params: [S("cracks", "Cracks", 1, 7, 1, 4), S("reach", "Reach", 30, 170, 1, 120, "mm"), S("branch", "Branching", 0, 1, .05, .55), S("weight", "Weight", .6, 2.4, .1, 1.3, "mm")],
+  fracture: { name: "Fracture", params: [S("cracks", "Cracks", 1, 7, 1, 3), S("reach", "Reach", 30, 170, 1, 90, "mm"), S("branch", "Branching", 0, 1, .05, 0.3), S("weight", "Weight", .6, 2.4, .1, 1.3, "mm")],
     gen(p, r, sides) { const out = [];
       for (const s of sides) for (let i = 0; i < p.cracks; i++) {
         const y = 45 + (i + .2 + r() * .6) / p.cracks * 425, dir = r() < .5 ? -1 : 1, tilt = .17 + r() * .27;
@@ -47,19 +47,19 @@ const PRESETS = {
         out.push(poly(ribbon(pts, p.weight, .12), p.weight));
         if (r() < p.branch) { const j = Math.floor(pts.length * (.25 + r() * .3)), b = walk(r, pts[j], ang + (r() < .5 ? -1 : 1) * (.3 + r() * .4), 14 + r() * 24, .22); const bw = Math.max(.6, p.weight * .65); out.push(poly(ribbon(b, bw, .08), bw, .85)); }
       } return out; } },
-  hairline: { name: "Hairline", params: [S("lines", "Lines", 1, 26, 1, 12), S("gap", "Spacing", .8, 6, .1, 1.6, "mm"), S("stagger", "Stagger", 0, 1, .05, .55), S("weight", "Weight", .6, 2, .05, .8, "mm")],
+  hairline: { name: "Hairline", params: [S("lines", "Lines", 1, 26, 1, 7), S("gap", "Spacing", .8, 6, .1, 1.6, "mm"), S("stagger", "Stagger", 0, 1, .05, .55), S("weight", "Weight", .6, 2, .05, .8, "mm")],
     gen(p, r, sides) { const out = [];
       for (const s of sides) { let u = 3, g = p.gap;
         for (let i = 0; i < p.lines; i++) { const f = i / Math.max(1, p.lines - 1), trim = p.stagger * 300 * f ** 1.3 + r() * 8 * p.stagger; const y0 = -5 + trim * .45, y1 = 525 - trim * .55, pts = [];
           for (let y = y0; y <= y1; y += 8) pts.push(seam(s, u * half(y) / 85, y));
           if (pts.length > 1) out.push(line(pts, Math.max(.6, p.weight * (1 - .25 * f)))); u += g; g *= 1.09; }
       } return out; } },
-  sediment: { name: "Sediment", params: [S("density", "Density", 500, 14000, 100, 6000), S("reach", "Reach", 3, 40, 1, 12, "mm"), S("grain", "Grain", .35, 1.4, .05, .6, "mm")],
+  sediment: { name: "Sediment", params: [S("density", "Density", 500, 14000, 100, 2800), S("reach", "Reach", 3, 40, 1, 12, "mm"), S("grain", "Grain", .35, 1.4, .05, .6, "mm")],
     gen(p, r, sides) { const out = [];
       for (const s of sides) { const b = wave(r, 3, .012, .04), arr = [];
         for (let i = 0; i < p.density; i++) { const y = r() * 530 - 5; if (r() > .68 + .32 * b(y)) continue; const u = -Math.log(1 - r()) * p.reach * .55, [x] = seam(s, u, y); arr.push([x, y, p.grain * (.45 + r() * .55)]); }
         out.push(dots(arr, p.grain)); } return out; } },
-  tideline: { name: "Tideline", params: [S("lines", "Lines", 2, 20, 1, 8), S("gap", "Spacing", 2, 10, .5, 4.5, "mm"), S("swell", "Swell", 0, 12, .5, 4, "mm"), S("weight", "Weight", .6, 1.8, .05, .8, "mm")],
+  tideline: { name: "Tideline", params: [S("lines", "Lines", 2, 20, 1, 5), S("gap", "Spacing", 2, 10, .5, 4.5, "mm"), S("swell", "Swell", 0, 12, .5, 4, "mm"), S("weight", "Weight", .6, 1.8, .05, .8, "mm")],
     gen(p, r, sides) { const out = [];
       for (const s of sides) { const w1 = wave(r, 3, .008, .03);
         for (let i = 0; i < p.lines; i++) { const f = i / Math.max(1, p.lines - 1), base = 4 + i * p.gap, w2 = wave(r, 2, .02, .05); let seg = [], on = true, next = 30 + r() * 80;
@@ -75,7 +75,7 @@ const PRESETS = {
         out.push(line([seam(s, p.inset, y), seam(s, p.inset + L, y)], p.weight));
         if (big && i && p.num > 0) { const [x] = seam(s, p.inset + p.major + 3 + p.num * .4, y); out.push(...strokeNumber(i, x, y, p.num, p.weight)); } }
       return out; } },
-  halftone: { name: "Edge halftone", params: [S("reach", "Reach", 10, 80, 1, 30, "mm"), S("dot", "Dot size", .6, 3, .05, 1.7, "mm"), S("pitch", "Spacing", 3, 9, .1, 4.2, "mm")],
+  halftone: { name: "Edge halftone", params: [S("reach", "Reach", 10, 80, 1, 20, "mm"), S("dot", "Dot size", .6, 3, .05, 1.7, "mm"), S("pitch", "Spacing", 3, 9, .1, 4.2, "mm")],
     gen(p, r, sides) { const arr = []; let row = 0;
       for (let y = -5; y < 526; y += p.pitch * .87, row++) for (let x = 30 + (row % 2 ? p.pitch / 2 : 0); x < 232; x += p.pitch) {
         const u = Math.min(...sides.map(s => s === "L" ? x - xl(y) : xr(y) - x)); if (u < -4) continue;
@@ -88,17 +88,17 @@ const PRESETS = {
       return [dots(arr, 1)]; } },
   block: { name: "Colourblock", noSide: true, params: [S("left", "Left edge", 0, 520, 5, 70, "mm"), S("right", "Right edge", 0, 520, 5, 470, "mm"), S("gap", "Hairline gap", 0, 12, .5, 3.5, "mm")],
     gen(p) { const a = p.left, b = p.right, out = [poly([[-5, a], [265, b], [265, 530], [-5, 530]], 9)]; if (p.gap) out.push(line([[-5, a - p.gap], [265, b - p.gap]], .8)); return out; } },
-  topo: { name: "Topo", params: [S("rings", "Rings", 3, 20, 1, 11), S("gap", "Spacing", 4, 18, .5, 9, "mm"), S("at", "Centre", 60, 470, 5, 300, "mm"), S("weight", "Weight", .6, 1.6, .05, .8, "mm")],
+  topo: { name: "Topo", params: [S("rings", "Rings", 3, 20, 1, 7), S("gap", "Spacing", 4, 18, .5, 9, "mm"), S("at", "Centre", 60, 470, 5, 300, "mm"), S("weight", "Weight", .6, 1.6, .05, .8, "mm")],
     gen(p, r, sides) { const out = [];
       for (const s of sides) { const [cx] = seam(s, -18, p.at), hs = [0, 1, 2].map(() => [.04 + r() * .08, 2 + Math.floor(r() * 4), r() * 6]);
         for (let k = 1; k <= p.rings; k++) { const pts = []; for (let i = 0; i <= 360; i += 4) { const t = i * Math.PI / 180, rad = p.gap * k * (1 + hs.reduce((q, [a, n, ph]) => q + a * Math.sin(n * t + ph + k * .25), 0)); pts.push([cx + rad * Math.cos(t), p.at + rad * 1.45 * Math.sin(t)]); } out.push(line(pts, p.weight, Math.max(.45, 1 - k * .04))); }
       } return out; } },
-  streak: { name: "Speed streak", params: [S("count", "Streaks", 1, 24, 1, 9), S("at", "Starts at", 60, 500, 5, 400, "mm"), S("spread", "Spread", 10, 300, 5, 130, "mm"), S("length", "Length", 40, 340, 5, 210, "mm"), S("angle", "Angle", 4, 50, 1, 16, "°"), S("weight", "Base width", 1.5, 22, .5, 8, "mm")],
+  streak: { name: "Speed streak", params: [S("count", "Streaks", 1, 24, 1, 5), S("at", "Starts at", 60, 500, 5, 400, "mm"), S("spread", "Spread", 10, 300, 5, 130, "mm"), S("length", "Length", 40, 340, 5, 210, "mm"), S("angle", "Angle", 4, 50, 1, 16, "°"), S("weight", "Base width", 1.5, 22, .5, 8, "mm")],
     gen(p, r, sides) { const out = [];
       for (const s of sides) for (let i = 0; i < p.count; i++) { const y = p.at - r() * p.spread, a = p.angle * Math.PI / 180 * (.75 + r() * .5), L = p.length * (.5 + r() * .5), w = p.weight * (.35 + r() * .65), [x] = seam(s, -3, y), d = s === "L" ? 1 : -1;
         out.push(poly([[x - d * 3, y - w / 2], [x - d * 3, y + w / 2], [x + d * Math.sin(a) * L, y - Math.cos(a) * L]], 1)); }
       return out; } },
-  tally: { name: "Count", params: [S("groups", "Groups", 1, 16, 1, 10), S("inset", "From seam", 6, 50, 1, 12, "mm"), S("length", "Stroke", 6, 18, .5, 10.5, "mm"), S("weight", "Weight", .7, 2, .05, 1.15, "mm")],
+  tally: { name: "Count", params: [S("groups", "Groups", 1, 16, 1, 6), S("inset", "From seam", 6, 50, 1, 12, "mm"), S("length", "Stroke", 6, 18, .5, 10.5, "mm"), S("weight", "Weight", .7, 2, .05, 1.15, "mm")],
     gen(p, r, sides) { const out = [];
       for (const s of sides) { let y = 452, g = 0; const d = s === "L" ? 1 : -1;
         while (g < p.groups && y > 50) { if (y < ELBOW[1] + 4 && y > ELBOW[0]) { y = ELBOW[0] - 6; continue; } const ys = [];
@@ -108,7 +108,7 @@ const PRESETS = {
 };
 const measure = document.createElement("canvas").getContext("2d");
 Object.assign(PRESETS, {
-  flame: { name: "Flame edge", group: "Shapes", params: [S("tongues", "Tongues", 2, 30, 1, 12), S("at", "Starts at", 60, 510, 5, 300, "mm"), S("spread", "Spread", 20, 300, 5, 170, "mm"), S("height", "Height", 30, 240, 5, 120, "mm"), S("reach", "Reach", 8, 70, 1, 30, "mm"), S("width", "Width", 3, 26, .5, 11, "mm")],
+  flame: { name: "Flame edge", group: "Shapes", params: [S("tongues", "Tongues", 2, 30, 1, 7), S("at", "Starts at", 60, 510, 5, 300, "mm"), S("spread", "Spread", 20, 300, 5, 170, "mm"), S("height", "Height", 30, 240, 5, 120, "mm"), S("reach", "Reach", 8, 70, 1, 30, "mm"), S("width", "Width", 3, 26, .5, 11, "mm")],
     gen(p, r, sides) { const out = [];
       for (const s of sides) for (let i = 0; i < p.tongues; i++) { const y = p.at - r() * p.spread, L = p.height * (.5 + r() * .5), reach = p.reach * (.4 + r() * .6), w0 = p.width * (.6 + r() * .6), ph = r() * 6, pts = [], ws = [];
         for (let t = 0; t <= 1.001; t += .05) { pts.push(seam(s, -4 + reach * t ** 1.4 + Math.sin(t * 5 + ph) * p.width * .35 * t, y - t * L)); ws.push(Math.max(.15, w0 * (1 - t) ** .8 * (.7 + .5 * Math.sin(t * 3.14)))); }
@@ -116,22 +116,22 @@ Object.assign(PRESETS, {
       return out; } },
   scribble: { name: "Scribble", group: "Lines", params: [S("loops", "Loops", 4, 60, 1, 22), S("amp", "Size", 6, 60, 1, 20, "mm"), S("inset", "From seam", 2, 50, 1, 8, "mm"), S("weight", "Weight", .6, 3, .05, 1, "mm")],
     gen(p, r, sides) { return sides.map(s => { const pts = [], n = p.loops * 12, w = wave(r, 3, .01, .04); for (let i = 0; i <= n; i++) { const t = i / n, a = t * p.loops * 6.283, y = 10 + 500 * t + p.amp * .55 * Math.sin(a); pts.push(seam(s, p.inset + p.amp * (.5 + .5 * Math.cos(a)) * (.75 + .35 * w(y)), y)); } return line(chaikin(pts), p.weight); }); } },
-  scratch: { name: "Scratched", group: "Texture", params: [S("count", "Scratches", 10, 260, 5, 90), S("length", "Length", 8, 120, 1, 42, "mm"), S("reach", "Reach", 8, 80, 1, 34, "mm"), S("angle", "Angle", 0, 60, 1, 18, "°"), S("weight", "Weight", .6, 2.5, .05, 1, "mm")],
+  scratch: { name: "Scratched", group: "Texture", params: [S("count", "Scratches", 10, 260, 5, 40), S("length", "Length", 8, 120, 1, 42, "mm"), S("reach", "Reach", 8, 80, 1, 34, "mm"), S("angle", "Angle", 0, 60, 1, 18, "°"), S("weight", "Weight", .6, 2.5, .05, 1, "mm")],
     gen(p, r, sides) { const out = [];
       for (const s of sides) { const d = s === "L" ? 1 : -1, cs = [0, 1, 2].map(() => 50 + r() * 420);
         for (let i = 0; i < p.count; i++) { const y = cs[i % 3] + (r() + r() + r() - 1.5) * 90, u = r() * r() * p.reach, a = -Math.PI / 2 + d * (p.angle * Math.PI / 180) * (.7 + r() * .6), pts = walk(r, seam(s, u, y), a, p.length * (.35 + r()), .05); out.push(poly(ribbon(pts, p.weight, .12), p.weight, .55 + r() * .45)); } }
       return out; } },
-  angular: { name: "Angular lines", group: "Lines", params: [S("count", "Lines", 1, 20, 1, 6), S("at", "Starts at", 60, 500, 5, 400, "mm"), S("gap", "Spacing", 3, 40, 1, 12, "mm"), S("reach", "Reach", 10, 80, 1, 42, "mm"), S("angle", "Angle", 15, 75, 1, 45, "°"), S("run", "Run", 10, 260, 5, 120, "mm"), S("weight", "Weight", .6, 3, .05, 1, "mm")],
+  angular: { name: "Angular lines", group: "Lines", params: [S("count", "Lines", 1, 20, 1, 4), S("at", "Starts at", 60, 500, 5, 400, "mm"), S("gap", "Spacing", 3, 40, 1, 12, "mm"), S("reach", "Reach", 10, 80, 1, 42, "mm"), S("angle", "Angle", 15, 75, 1, 45, "°"), S("run", "Run", 10, 260, 5, 120, "mm"), S("weight", "Weight", .6, 3, .05, 1, "mm")],
     gen(p, r, sides) { const out = [], k = Math.tan(p.angle * Math.PI / 180);
       for (const s of sides) for (let i = 0; i < p.count; i++) { const y = p.at - i * p.gap, y1 = y - (p.reach + 4) * k; out.push(line([seam(s, -4, y), seam(s, p.reach, y1), seam(s, p.reach * .75, y1 - p.run)], p.weight)); }
       return out; } },
-  facet: { name: "Facets", group: "Shapes", params: [S("cell", "Facet size", 8, 50, 1, 22, "mm"), S("reach", "Reach", 15, 85, 1, 48, "mm"), S("contrast", "Contrast", .1, .9, .05, .55)],
+  facet: { name: "Facets", group: "Shapes", params: [S("cell", "Facet size", 8, 50, 1, 22, "mm"), S("reach", "Reach", 15, 85, 1, 30, "mm"), S("contrast", "Contrast", .1, .9, .05, .55)],
     gen(p, r, sides) { const out = [];
       for (const s of sides) { const g = [], rows = Math.ceil(540 / p.cell) + 1, cols = Math.ceil((p.reach + 8) / p.cell) + 1;
         for (let j = 0; j < rows; j++) { g.push([]); for (let i = 0; i < cols; i++) g[j].push(seam(s, -8 + i * p.cell + (r() - .5) * p.cell * .7, -10 + j * p.cell + (r() - .5) * p.cell * .7)); }
         for (let j = 0; j < rows - 1; j++) for (let i = 0; i < cols - 1; i++) { const fade = 1 - i / (cols - 1), o = () => (.06 + r() * p.contrast) * fade; out.push(poly([g[j][i], g[j][i + 1], g[j + 1][i]], 9, o()), poly([g[j][i + 1], g[j + 1][i + 1], g[j + 1][i]], 9, o())); } }
       return out; } },
-  mesh: { name: "Mesh", group: "Texture", params: [S("pitch", "Spacing", 4, 24, .5, 9, "mm"), S("reach", "Reach", 8, 85, 1, 32, "mm"), S("angle", "Angle", 20, 70, 1, 45, "°"), S("weight", "Weight", .6, 1.6, .05, .7, "mm")],
+  mesh: { name: "Mesh", group: "Texture", params: [S("pitch", "Spacing", 4, 24, .5, 9, "mm"), S("reach", "Reach", 8, 85, 1, 20, "mm"), S("angle", "Angle", 20, 70, 1, 45, "°"), S("weight", "Weight", .6, 1.6, .05, .8, "mm")],
     gen(p, r, sides) { const out = [], k = Math.tan(p.angle * Math.PI / 180), w = wave(r, 3, .01, .03);
       for (const s of sides) for (const d of [1, -1]) for (let c = -220; c < 760; c += p.pitch) { const reach = p.reach * (.72 + .28 * w(c)), a = seam(s, -3, c - 3 * d * k), b = seam(s, reach, c + reach * d * k); out.push(line([a, b], p.weight)); }
       return out; } },
@@ -177,11 +177,11 @@ const LOOKS = [
   { name: "Selvedge", base: COL.ink, logo: COL.bone, layers: [["hairline", { seed: 11, p: { weight: 1 } }], ["hairline", { side: "R", color: COL.lime, seed: 3, p: { lines: 1, stagger: 0, weight: .9 } }]] },
   { name: "Silt", base: COL.charcoal, logo: COL.cotton, layers: [["sediment", { color: COL.cotton, seed: 23 }]] },
   { name: "Bone Tally", base: COL.bone, logo: COL.ink, layers: [["tally", { side: "R", color: COL.ink, seed: 5 }]] },
-  { name: "Coastline", base: COL.navy, logo: COL.bone, layers: [["topo", { side: "R", color: "#C3CAD6", seed: 4 }], ["tideline", { side: "L", color: "#C3CAD6", seed: 8, p: { lines: 5 } }]] },
-  { name: "Redline", base: COL.ink, logo: COL.bone, layers: [["fade", { color: COL.white, seed: 2, p: { length: 150 } }], ["streak", { side: "R", color: COL.red, seed: 21 }], ["streak", { side: "R", color: COL.white, seed: 6, p: { count: 4, weight: 4 } }]] },
+  { name: "Coastline", base: COL.navy, logo: COL.bone, layers: [["topo", { side: "R", color: "#C3CAD6", seed: 4 }]] },
+  { name: "Redline", base: COL.ink, logo: COL.bone, layers: [["fade", { color: COL.white, seed: 2, p: { length: 150 } }], ["streak", { side: "R", color: COL.red, seed: 21 }]] },
   { name: "Surveyor", base: COL.charcoal, logo: COL.bone, layers: [["ruler", { side: "L", seed: 1 }]] },
   { name: "Split", base: "#151515", logo: "#151515", layers: [["block", { color: COL.bone, seed: 1 }]] },
-  { name: "Ember", base: COL.ink, logo: COL.bone, layers: [["flame", { side: "R", color: COL.red, seed: 12, p: { tongues: 18, at: 480, spread: 330, height: 170, reach: 46, width: 16 } }]] },
+  { name: "Ember", base: COL.ink, logo: COL.bone, layers: [["flame", { side: "R", color: COL.red, seed: 12, p: { tongues: 9, at: 480, spread: 240, height: 130, reach: 34, width: 12 } }]] },
   { name: "Scrawl", base: COL.bone, logo: COL.ink, layers: [["scribble", { side: "L", color: COL.ink, seed: 9, p: { loops: 13, amp: 30, weight: 1.2 } }]] },
   { name: "Worn", base: COL.charcoal, logo: COL.bone, layers: [["scratch", { seed: 31 }]] },
   { name: "Prism", base: COL.navy, logo: COL.bone, layers: [["facet", { side: "R", color: "#9FB0C8", seed: 17 }]] },
@@ -199,9 +199,9 @@ function bandsOf(l) { // visible stretches of the arm for this layer
   const a = l.from <= 0 ? -10 : 30 + l.from * 10, b = l.to >= 46 ? 530 : 30 + l.to * 10; if (!l.avoid) return [[a, b]];
   const out = []; if (a < ELBOW[0]) out.push([a, Math.min(b, ELBOW[0])]); if (b > ELBOW[1]) out.push([Math.max(a, ELBOW[1]), b]); return out;
 }
-// The back of the sleeve. Going past a side seam you land on the back's near edge, so one-sided layers
-// swap sides and get a fresh seed, and layers that run across the arm mirror so they line up at the fold.
-function backState(st) { return { base: st.base, logo: { on: false }, layers: st.layers.map(l => { const P = PRESETS[l.type], flip = !!P.noSide; return { ...l, id: l.id + 1e6, seed: flip && !P.knock ? l.seed : l.seed + 7919, side: l.side === "L" ? "R" : l.side === "R" ? "L" : l.side, flip }; }) }; }
+// The back of the sleeve. It mirrors the front so every mark meets itself at the side seams and nothing
+// gets cut off at the fold. Text can't be mirrored, so it swaps sides and repeats instead.
+function backState(st) { return { base: st.base, logo: { on: false }, layers: st.layers.map(l => { const text = !!PRESETS[l.type].text; return { ...l, id: l.id + 1e6, seed: text ? l.seed + 7919 : l.seed, side: !text ? l.side : l.side === "L" ? "R" : l.side === "R" ? "L" : l.side, flip: !text }; }) }; }
 function drawLayer(c, l) {
   c.save(); c.beginPath(); for (const [a, b] of bandsOf(l)) c.rect(-20, a, 300, b - a); c.clip();
   if (l.flip) { c.translate(W, 0); c.scale(-1, 1); }
